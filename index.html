@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OpenTour Guide</title>
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OpenTour">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      background: #000;
+    }
+
+    #map { height: 100%; width: 100%; z-index: 1; }
+
+    .top-bar {
+      position: absolute;
+      top: env(safe-area-inset-top, 12px);
+      left: 12px;
+      right: 12px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      padding: 8px 14px;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    .top-bar h1 { font-size: 1rem; font-weight: 700; flex: 1; display: flex; align-items: center; gap: 6px; }
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:active { background: var(--primary-hover); transform: scale(0.97); }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+
+    .fab-gps {
+      position: absolute;
+      bottom: 240px;
+      right: 16px;
+      z-index: 1000;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 46px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+    }
+
+    .bottom-sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      box-shadow: 0 -5px 25px rgba(0,0,0,0.15);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 75vh;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: env(safe-area-inset-bottom, 12px);
+    }
+
+    .sheet-handle {
+      width: 40px;
+      height: 5px;
+      background: #cbd5e1;
+      border-radius: 10px;
+      margin: 10px auto 4px auto;
+    }
+
+    .sheet-content {
+      padding: 12px 18px 24px;
+      overflow-y: auto;
+    }
+
+    .poi-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+    .poi-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; display: flex; gap: 12px; }
+
+    .audio-player {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .player-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .player-btn {
+      background: none;
+      border: none;
+      font-size: 1.3rem;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .play-circle {
+      background: var(--primary);
+      color: white;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    .rate-btn {
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: #e2e8f0;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+    }
+
+    .poi-desc {
+      font-size: 0.92rem;
+      line-height: 1.5;
+      color: #334155;
+    }
+
+    .poi-list-view {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .poi-item {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .poi-item:hover { background: #f8fafc; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <h1>🧭 OpenTour</h1>
+    <button class="btn btn-secondary" id="toggleModeBtn" onclick="toggleView()">📋 Liste</button>
+    <button class="btn" onclick="fetchPOIsInArea()">🔄 Neu laden</button>
+  </div>
+
+  <div class="fab-gps" onclick="locateUser()" title="Standort zentrieren">🎯</div>
+
+  <div id="map"></div>
+
+  <div class="bottom-sheet" id="bottomSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-content">
+      
+      <div id="detailView">
+        <div class="poi-title" id="sheetTitle">Tippe auf ein Highlight</div>
+        <div class="poi-meta" id="sheetMeta">
+          <span id="sheetDist">-- km</span>
+          <span id="sheetType">Touristenattraktion</span>
+        </div>
+
+        <div class="audio-player">
+          <div class="player-controls">
+            <button class="player-btn" onclick="skipSpeech(-15)">⏪ -15s</button>
+            <button class="player-btn play-circle" id="playBtn" onclick="toggleAudio()">▶</button>
+            <button class="player-btn" onclick="skipSpeech(15)">⏩ +15s</button>
+            <button class="rate-btn" id="rateBtn" onclick="toggleRate()">1.0x</button>
+          </div>
+        </div>
+
+        <p class="poi-desc" id="sheetDesc">Bewege die Karte oder tippe auf 'Neu laden', um Sehenswürdigkeiten in deiner Umgebung zu finden.</p>
+      </div>
+
+      <div id="listView" class="poi-list-view"></div>
+
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    let map, userMarker, userCircle;
+    let currentPos = [50.1109, 8.6821];
+    let activePOI = null;
+    let loadedPOIs = [];
+    let poiMarkers = [];
+    
+    let synth = window.speechSynthesis;
+    let utterance = null;
+    let isPlaying = false;
+    let playbackRate = 1.0;
+
+    function initMap() {
+      map = L.map('map', { zoomControl: false }).setView(currentPos, 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+
+      locateUser(true);
+    }
+
+    function locateUser(center = false) {
+      if (!navigator.geolocation) return alert('GPS wird nicht unterstützt.');
+      
+      navigator.geolocation.watchPosition((pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        currentPos = [latitude, longitude];
+
+        if (!userMarker) {
+          userMarker = L.circleMarker(currentPos, {
+            radius: 8,
+            fillColor: '#2563eb',
+            color: '#ffffff',
+            weight: 3,
+            fillOpacity: 1
+          }).addTo(map);
+
+          userCircle = L.circle(currentPos, {
+            radius: accuracy,
+            color: '#2563eb',
+            weight: 1,
+            fillOpacity: 0.1
+          }).addTo(map);
+
+          if (center) {
+            map.setView(currentPos, 16);
+            fetchPOIsInArea();
+          }
+        } else {
+          userMarker.setLatLng(currentPos);
+          userCircle.setLatLng(currentPos);
+          userCircle.setRadius(accuracy);
+        }
+
+        checkGeofenceTrigger(latitude, longitude);
+      }, (err) => {
+        console.warn("GPS-Fehler:", err.message);
+        if (center) fetchPOIsInArea();
+      }, { enableHighAccuracy: true, maximumAge: 5000 });
+    }
+
+    async function fetchPOIsInArea() {
+      const center = map.getCenter();
+      const radius = 1200;
+
+      const query = `
+        [out:json][timeout:15];
+        (
+          node["tourism"~"attraction|museum|viewpoint|artwork"](around:${radius},${center.lat},${center.lng});
+          node["historic"~"monument|memorial|castle|ruins|church"](around:${radius},${center.lat},${center.lng});
+        );
+        out body 25;
+      `;
+
+      try {
+        const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        clearMarkers();
+        loadedPOIs = [];
+
+        data.elements.forEach(el => {
+          if (el.tags && el.tags.name) {
+            const poi = {
+              id: el.id,
+              name: el.tags.name,
+              lat: el.lat,
+              lng: el.lon,
+              type: el.tags.tourism || el.tags.historic || 'Attraktion',
+              desc: el.tags.description || el.tags['description:de'] || null,
+              wikipedia: el.tags.wikipedia || null
+            };
+            loadedPOIs.push(poi);
+            renderMarker(poi);
+          }
+        });
+
+        renderListView();
+      } catch (e) {
+        console.error("Overpass API Error:", e);
+      }
+    }
+
+    function clearMarkers() {
+      poiMarkers.forEach(m => map.removeLayer(m));
+      poiMarkers = [];
+    }
+
+    function renderMarker(poi) {
+      const marker = L.marker([poi.lat, poi.lng]).addTo(map);
+      marker.on('click', () => selectPOI(poi));
+      poiMarkers.push(marker);
+    }
+
+    async function selectPOI(poi) {
+      activePOI = poi;
+      stopAudio();
+
+      document.getElementById('sheetTitle').textContent = poi.name;
+      document.getElementById('sheetType').textContent = poi.type.toUpperCase();
+      
+      const dist = calcDistance(currentPos[0], currentPos[1], poi.lat, poi.lng);
+      document.getElementById('sheetDist').textContent = `${Math.round(dist)} m entfernt`;
+      document.getElementById('sheetDesc').textContent = 'Lade Audio-Tour-Informationen...';
+
+      document.getElementById('detailView').style.display = 'block';
+      document.getElementById('listView').style.display = 'none';
+      document.getElementById('toggleModeBtn').textContent = '📋 Liste';
+
+      let text = poi.desc;
+      if (!text) {
+        text = await fetchWikipediaSummary(poi.name, poi.wikipedia);
+      }
+
+      poi.fullText = text || `Willkommen bei ${poi.name}. Dies ist ein bekanntes Highlight der Kategorie ${poi.type}.`;
+      document.getElementById('sheetDesc').textContent = poi.fullText;
+    }
+
+    async function fetchWikipediaSummary(title, wikiTag) {
+      try {
+        let pageTitle = title;
+        if (wikiTag && wikiTag.includes(':')) {
+          pageTitle = wikiTag.split(':')[1];
+        }
+        const url = `https://de.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.extract || null;
+      } catch {
+        return null;
+      }
+    }
+
+    function toggleAudio() {
+      if (!activePOI || !activePOI.fullText) return;
+
+      if (synth.speaking) {
+        if (isPlaying) {
+          synth.pause();
+          isPlaying = false;
+          document.getElementById('playBtn').textContent = '▶';
+        } else {
+          synth.resume();
+          isPlaying = true;
+          document.getElementById('playBtn').textContent = '⏸';
+        }
+      } else {
+        utterance = new SpeechSynthesisUtterance(activePOI.fullText);
+        utterance.lang = 'de-DE';
+        utterance.rate = playbackRate;
+
+        utterance.onend = () => {
+          isPlaying = false;
+          document.getElementById('playBtn').textContent = '▶';
+        };
+
+        synth.speak(utterance);
+        isPlaying = true;
+        document.getElementById('playBtn').textContent = '⏸';
+      }
+    }
+
+    function stopAudio() {
+      if (synth.speaking) synth.cancel();
+      isPlaying = false;
+      document.getElementById('playBtn').textContent = '▶';
+    }
+
+    function toggleRate() {
+      const rates = [1.0, 1.25, 1.5];
+      let idx = rates.indexOf(playbackRate);
+      playbackRate = rates[(idx + 1) % rates.length];
+      document.getElementById('rateBtn').textContent = `${playbackRate}x`;
+      if (synth.speaking) {
+        stopAudio();
+        toggleAudio();
+      }
+    }
+
+    function skipSpeech(seconds) {
+      if (synth.speaking) {
+        stopAudio();
+        toggleAudio();
+      }
+    }
+
+    let lastTriggeredPoiId = null;
+    function checkGeofenceTrigger(lat, lng) {
+      loadedPOIs.forEach(poi => {
+        const d = calcDistance(lat, lng, poi.lat, poi.lng);
+        if (d < 40 && lastTriggeredPoiId !== poi.id) {
+          lastTriggeredPoiId = poi.id;
+          selectPOI(poi);
+        }
+      });
+    }
+
+    function calcDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180, Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function toggleView() {
+      const isList = document.getElementById('listView').style.display === 'flex';
+      document.getElementById('detailView').style.display = isList ? 'block' : 'none';
+      document.getElementById('listView').style.display = isList ? 'none' : 'flex';
+      document.getElementById('toggleModeBtn').textContent = isList ? '📋 Liste' : '🗺 Karte';
+    }
+
+    function renderListView() {
+      const list = document.getElementById('listView');
+      list.innerHTML = '';
+      
+      const sorted = [...loadedPOIs].sort((a, b) => {
+        return calcDistance(currentPos[0], currentPos[1], a.lat, a.lng) -
+               calcDistance(currentPos[0], currentPos[1], b.lat, b.lng);
+      });
+
+      sorted.forEach(poi => {
+        const d = Math.round(calcDistance(currentPos[0], currentPos[1], poi.lat, poi.lng));
+        const item = document.createElement('div');
+        item.className = 'poi-item';
+        item.innerHTML = `
+          <div>
+            <strong>${poi.name}</strong><br>
+            <small style="color:var(--text-muted)">${poi.type}</small>
+          </div>
+          <span style="font-size:0.85rem;font-weight:600;color:var(--primary)">${d} m</span>
+        `;
+        item.onclick = () => selectPOI(poi);
+        list.appendChild(item);
+      });
+    }
+
+    window.onload = initMap;
+  </script>
+</body>
+</html>
