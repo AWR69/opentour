@@ -5,29 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>OpenTour Guide</title>
 
-  <!-- iOS PWA Optimierungen -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="OpenTour">
   <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png">
   
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
-      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card: rgba(255, 255, 255, 0.94);
       --text: #1e293b;
       --text-muted: #64748b;
       --border: #e2e8f0;
-      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: var(--text);
       overflow: hidden;
       height: 100vh;
@@ -37,108 +35,159 @@
 
     #map { height: 100%; width: 100%; z-index: 1; }
 
-    /* Top Floating Header */
+    /* Fixierte obere Menüleiste */
     .top-bar {
-      position: absolute;
-      top: env(safe-area-inset-top, 12px);
-      left: 12px;
-      right: 12px;
-      z-index: 1000;
+      position: fixed;
+      top: max(10px, env(safe-area-inset-top));
+      left: 10px;
+      right: 10px;
+      z-index: 2000;
       display: flex;
       gap: 8px;
       align-items: center;
       background: var(--bg-card);
-      backdrop-filter: blur(10px);
-      padding: 8px 14px;
-      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 8px 12px;
+      border-radius: 14px;
       box-shadow: var(--shadow);
     }
-    .top-bar h1 { font-size: 1rem; font-weight: 700; flex: 1; display: flex; align-items: center; gap: 6px; }
+    .top-bar h1 { font-size: 0.95rem; font-weight: 700; flex: 1; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
     .btn {
       background: var(--primary);
       color: #fff;
       border: none;
-      padding: 8px 14px;
-      border-radius: 10px;
-      font-size: 0.85rem;
+      padding: 7px 12px;
+      border-radius: 9px;
+      font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
-    .btn:active { background: var(--primary-hover); transform: scale(0.97); }
-    .btn-secondary {
-      background: #f1f5f9;
-      color: var(--text);
-    }
+    .btn:active { background: var(--primary-hover); transform: scale(0.96); }
+    .btn-secondary { background: #e2e8f0; color: var(--text); }
 
-    /* Floating Action Button (Center GPS) */
+    /* GPS-Schaltfläche */
     .fab-gps {
-      position: absolute;
-      bottom: 240px;
-      right: 16px;
-      z-index: 1000;
+      position: fixed;
+      bottom: 85px;
+      right: 14px;
+      z-index: 1500;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 50%;
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       box-shadow: var(--shadow);
       cursor: pointer;
     }
 
-    /* Bottom Sheet / Player */
+    /* Einklappbare Bottom Sheet */
     .bottom-sheet {
-      position: absolute;
+      position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      z-index: 1000;
+      z-index: 2000;
       background: var(--bg-card);
-      backdrop-filter: blur(12px);
-      border-top-left-radius: 24px;
-      border-top-right-radius: 24px;
-      box-shadow: 0 -5px 25px rgba(0,0,0,0.15);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      max-height: 75vh;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      box-shadow: 0 -4px 25px rgba(0,0,0,0.18);
+      transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+      max-height: 70vh;
       display: flex;
       flex-direction: column;
-      padding-bottom: env(safe-area-inset-bottom, 12px);
+      padding-bottom: env(safe-area-inset-bottom, 8px);
+    }
+
+    /* Eingeklappter Status: zeigt nur die obere Mini-Leiste (~64px) */
+    .bottom-sheet.collapsed {
+      transform: translateY(calc(100% - 66px - env(safe-area-inset-bottom, 0px)));
+    }
+    /* Vollständig versteckt */
+    .bottom-sheet.hidden {
+      transform: translateY(105%);
+    }
+
+    /* Klickbare Kopfzeile zum Ein-/Ausklappen */
+    .sheet-header {
+      padding: 6px 14px 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      user-select: none;
     }
 
     .sheet-handle {
-      width: 40px;
-      height: 5px;
+      width: 36px;
+      height: 4px;
       background: #cbd5e1;
       border-radius: 10px;
-      margin: 10px auto 4px auto;
+      margin: 2px auto 6px auto;
     }
 
-    .sheet-content {
-      padding: 12px 18px 24px;
+    .peek-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .peek-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .poi-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .poi-meta {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .peek-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-chevron {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      padding: 4px 8px;
+      background: #f1f5f9;
+      border-radius: 8px;
+    }
+
+    .sheet-body {
+      padding: 4px 16px 20px;
       overflow-y: auto;
+      border-top: 1px solid var(--border);
     }
 
-    .poi-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
-    .poi-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; display: flex; gap: 12px; }
-
-    /* Audio Player Bar */
+    /* Audiosteuerung */
     .audio-player {
       background: #f8fafc;
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
-      margin-bottom: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .player-controls {
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin: 10px 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -146,183 +195,181 @@
     .player-btn {
       background: none;
       border: none;
-      font-size: 1.3rem;
+      font-size: 1.15rem;
       cursor: pointer;
       color: var(--text);
     }
     .play-circle {
       background: var(--primary);
       color: white;
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
     }
     .rate-btn {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 700;
       background: #e2e8f0;
-      padding: 4px 8px;
+      padding: 4px 7px;
       border-radius: 6px;
-      cursor: pointer;
       border: none;
+      cursor: pointer;
     }
 
     .poi-desc {
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       line-height: 1.5;
       color: #334155;
+      margin-top: 6px;
     }
 
-    /* List Modal */
+    /* Listen-Ansicht */
     .poi-list-view {
       display: none;
       flex-direction: column;
-      gap: 10px;
-      margin-top: 10px;
+      gap: 8px;
+      max-height: 55vh;
+      overflow-y: auto;
+      padding-top: 8px;
     }
     .poi-item {
-      padding: 10px 12px;
+      padding: 9px 12px;
       border: 1px solid var(--border);
       border-radius: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       cursor: pointer;
+      background: #fff;
     }
-    .poi-item:hover { background: #f8fafc; }
+    .poi-item:active { background: #f1f5f9; }
+
+    /* Lade-Badge */
+    .status-badge {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
   </style>
 </head>
 <body>
 
   <div class="top-bar">
-    <h1>🧭 OpenTour</h1>
+    <h1>🧭 OpenTour <span id="statusBadge" class="status-badge"></span></h1>
     <button class="btn btn-secondary" id="toggleModeBtn" onclick="toggleView()">📋 Liste</button>
-    <button class="btn" id="reloadBtn" onclick="fetchPOIsInArea()">🔄 Neu laden</button>
+    <button class="btn" id="reloadBtn" onclick="forceReload()">🔄</button>
   </div>
 
-  <div class="fab-gps" onclick="locateUser(true)" title="Standort zentrieren">🎯</div>
+  <div class="fab-gps" onclick="locateUser(true)" title="Mein Standort">🎯</div>
 
   <div id="map"></div>
 
-  <div class="bottom-sheet" id="bottomSheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-content">
-      
+  <div class="bottom-sheet collapsed" id="bottomSheet">
+    
+    <div class="sheet-header" onclick="toggleSheet()">
+      <div class="sheet-handle"></div>
+      <div class="peek-row">
+        <div class="peek-info">
+          <div class="poi-title" id="sheetTitle">Tippe auf ein Highlight</div>
+          <div class="poi-meta" id="sheetMeta">Karte frei verschiebbar</div>
+        </div>
+        <div class="peek-actions">
+          <button class="player-btn play-circle" id="peekPlayBtn" style="width:34px;height:34px;font-size:0.9rem;" onclick="event.stopPropagation(); toggleAudio();">▶</button>
+          <span class="toggle-chevron" id="sheetChevron">▲</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet-body" id="sheetBody">
       <div id="detailView">
-        <div class="poi-title" id="sheetTitle">Tippe auf ein Highlight</div>
-        <div class="poi-meta" id="sheetMeta">
-          <span id="sheetDist">-- km</span>
-          <span id="sheetType">Touristenattraktion</span>
-        </div>
-
         <div class="audio-player">
-          <div class="player-controls">
-            <button class="player-btn" onclick="skipSpeech(-15)">⏪ -15s</button>
-            <button class="player-btn play-circle" id="playBtn" onclick="toggleAudio()">▶</button>
-            <button class="player-btn" onclick="skipSpeech(15)">⏩ +15s</button>
-            <button class="rate-btn" id="rateBtn" onclick="toggleRate()">1.0x</button>
-          </div>
+          <button class="player-btn" onclick="skipSpeech(-15)">⏪ -15s</button>
+          <button class="player-btn play-circle" id="playBtn" onclick="toggleAudio()">▶</button>
+          <button class="player-btn" onclick="skipSpeech(15)">⏩ +15s</button>
+          <button class="rate-btn" id="rateBtn" onclick="toggleRate()">1.0x</button>
         </div>
-
-        <p class="poi-desc" id="sheetDesc">Bewege die Karte, um Highlights in der Umgebung automatisch zu entdecken.</p>
+        <p class="poi-desc" id="sheetDesc">Bewege die Karte, um Sehenswürdigkeiten in deiner Umgebung zu entdecken.</p>
       </div>
 
       <div id="listView" class="poi-list-view"></div>
-
     </div>
+
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     let map, userMarker, userCircle;
-    let currentPos = [49.4432, 1.0999]; // Rouen Fallback
+    let currentPos = [49.4432, 1.0999]; // Rouen
     let activePOI = null;
     let loadedPOIs = [];
     let poiMarkers = [];
+    let lastQueryCenter = null;
+    let isFetching = false;
     let moveTimeout = null;
-    
+
+    // Speech State
     let synth = window.speechSynthesis;
     let utterance = null;
     let isPlaying = false;
     let playbackRate = 1.0;
 
     function initMap() {
-      map = L.map('map', { zoomControl: false }).setView(currentPos, 16);
+      // Karte initialisieren mit sichtbaren Zoom-Buttons oben links
+      map = L.map('map', { zoomControl: true }).setView(currentPos, 16);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap'
       }).addTo(map);
 
-      // Automatisches Nachladen beim Verschieben/Zoomen (mit 600ms Entprellung)
+      // Beim Verschieben: nur abfragen, wenn der Nutzer mind. 350 Meter weggescrollt hat
       map.on('moveend', () => {
         clearTimeout(moveTimeout);
         moveTimeout = setTimeout(() => {
-          fetchPOIsInArea();
-        }, 600);
+          checkAndFetchPOIs();
+        }, 450);
       });
 
       locateUser(false);
-      fetchPOIsInArea();
+      checkAndFetchPOIs(true);
     }
 
-    function locateUser(center = false) {
-      if (!navigator.geolocation) return;
-      
-      navigator.geolocation.watchPosition((pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        currentPos = [latitude, longitude];
-
-        if (!userMarker) {
-          userMarker = L.circleMarker(currentPos, {
-            radius: 8,
-            fillColor: '#2563eb',
-            color: '#ffffff',
-            weight: 3,
-            fillOpacity: 1
-          }).addTo(map);
-
-          userCircle = L.circle(currentPos, {
-            radius: accuracy,
-            color: '#2563eb',
-            weight: 1,
-            fillOpacity: 0.1
-          }).addTo(map);
-
-          if (center) {
-            map.setView(currentPos, 16);
-          }
-        } else {
-          userMarker.setLatLng(currentPos);
-          userCircle.setLatLng(currentPos);
-          userCircle.setRadius(accuracy);
-          if (center) map.setView(currentPos, 16);
-        }
-
-        checkGeofenceTrigger(latitude, longitude);
-      }, (err) => {
-        console.warn("GPS-Hinweis:", err.message);
-      }, { enableHighAccuracy: true, maximumAge: 5000 });
-    }
-
-    // Abfrage mit nwr (Node, Way, Relation) & Center-Koordinaten für Gebäude
-    async function fetchPOIsInArea() {
+    // 1. Performance-optimiertes Laden der POIs
+    function checkAndFetchPOIs(force = false) {
+      if (isFetching) return;
       const center = map.getCenter();
-      const radius = 1000; // 1 km Umkreis vom Kartenzentrum
-      const reloadBtn = document.getElementById('reloadBtn');
-      if (reloadBtn) reloadBtn.textContent = '⏳ Lädt...';
 
+      if (!force && lastQueryCenter) {
+        const distMoved = calcDistance(center.lat, center.lng, lastQueryCenter.lat, lastQueryCenter.lng);
+        if (distMoved < 350) return; // Noch im selben Radius, kein neuer Server-Request nötig!
+      }
+
+      fetchPOIsInArea(center);
+    }
+
+    function forceReload() {
+      fetchPOIsInArea(map.getCenter());
+    }
+
+    async function fetchPOIsInArea(center) {
+      isFetching = true;
+      lastQueryCenter = center;
+      const badge = document.getElementById('statusBadge');
+      if (badge) badge.textContent = '(lädt...)';
+
+      // Kompakter Suchradius: 850 Meter um das Kartenzentrum
+      const radius = 850;
       const query = `
-        [out:json][timeout:15];
+        [out:json][timeout:10];
         (
           nwr["tourism"~"attraction|museum|viewpoint|artwork"](around:${radius},${center.lat},${center.lng});
           nwr["historic"~"monument|memorial|castle|ruins|church|cathedral"](around:${radius},${center.lat},${center.lng});
           nwr["amenity"="place_of_worship"]["historic"](around:${radius},${center.lat},${center.lng});
         );
-        out center 35;
+        out center 25;
       `;
 
       try {
@@ -343,7 +390,7 @@
               name: name,
               lat: lat,
               lng: lng,
-              type: el.tags.tourism || el.tags.historic || 'Sehenswürdigkeit',
+              type: el.tags.tourism || el.tags.historic || 'Attraktion',
               desc: el.tags.description || el.tags['description:de'] || null,
               wikipedia: el.tags.wikipedia || null
             };
@@ -352,11 +399,13 @@
           }
         });
 
+        if (badge) badge.textContent = `(${loadedPOIs.length} Highlights)`;
         renderListView();
       } catch (e) {
         console.error("Overpass API Error:", e);
+        if (badge) badge.textContent = '';
       } finally {
-        if (reloadBtn) reloadBtn.textContent = '🔄 Neu laden';
+        isFetching = false;
       }
     }
 
@@ -367,31 +416,48 @@
 
     function renderMarker(poi) {
       const marker = L.marker([poi.lat, poi.lng]).addTo(map);
-      marker.on('click', () => selectPOI(poi));
+      marker.on('click', () => {
+        selectPOI(poi);
+        expandSheet(); // Beim Anklicken eines Markers Box automatisch öffnen
+      });
       poiMarkers.push(marker);
     }
 
+    // 2. Sheet ein- und ausklappen
+    function toggleSheet() {
+      const sheet = document.getElementById('bottomSheet');
+      const chevron = document.getElementById('sheetChevron');
+      if (sheet.classList.contains('collapsed')) {
+        sheet.classList.remove('collapsed');
+        chevron.textContent = '▼';
+      } else {
+        sheet.classList.add('collapsed');
+        chevron.textContent = '▲';
+      }
+    }
+
+    function expandSheet() {
+      const sheet = document.getElementById('bottomSheet');
+      sheet.classList.remove('collapsed');
+      document.getElementById('sheetChevron').textContent = '▼';
+    }
+
+    // 3. POI Auswählen & Wikipedia abrufen
     async function selectPOI(poi) {
       activePOI = poi;
       stopAudio();
 
       document.getElementById('sheetTitle').textContent = poi.name;
-      document.getElementById('sheetType').textContent = poi.type.toUpperCase();
-      
-      const dist = calcDistance(currentPos[0], currentPos[1], poi.lat, poi.lng);
-      document.getElementById('sheetDist').textContent = `${Math.round(dist)} m entfernt`;
-      document.getElementById('sheetDesc').textContent = 'Lade Audioguide-Text...';
-
-      document.getElementById('detailView').style.display = 'block';
-      document.getElementById('listView').style.display = 'none';
-      document.getElementById('toggleModeBtn').textContent = '📋 Liste';
+      const dist = Math.round(calcDistance(currentPos[0], currentPos[1], poi.lat, poi.lng));
+      document.getElementById('sheetMeta').textContent = `${dist} m entfernt • ${poi.type.toUpperCase()}`;
+      document.getElementById('sheetDesc').textContent = 'Lade Audiotext...';
 
       let text = poi.desc;
       if (!text) {
         text = await fetchWikipediaSummary(poi.name, poi.wikipedia);
       }
 
-      poi.fullText = text || `Willkommen bei ${poi.name}. Dies ist ein historisches Highlight der Kategorie ${poi.type}.`;
+      poi.fullText = text || `Willkommen bei ${poi.name}. Dies ist ein bekanntes Highlight der Kategorie ${poi.type}.`;
       document.getElementById('sheetDesc').textContent = poi.fullText;
     }
 
@@ -413,6 +479,7 @@
       }
     }
 
+    // 4. Audio-Wiedergabe
     function toggleAudio() {
       if (!activePOI || !activePOI.fullText) return;
 
@@ -420,32 +487,35 @@
         if (isPlaying) {
           synth.pause();
           isPlaying = false;
-          document.getElementById('playBtn').textContent = '▶';
+          setPlayButtonIcon('▶');
         } else {
           synth.resume();
           isPlaying = true;
-          document.getElementById('playBtn').textContent = '⏸';
+          setPlayButtonIcon('⏸');
         }
       } else {
         utterance = new SpeechSynthesisUtterance(activePOI.fullText);
         utterance.lang = 'de-DE';
         utterance.rate = playbackRate;
-
         utterance.onend = () => {
           isPlaying = false;
-          document.getElementById('playBtn').textContent = '▶';
+          setPlayButtonIcon('▶');
         };
-
         synth.speak(utterance);
         isPlaying = true;
-        document.getElementById('playBtn').textContent = '⏸';
+        setPlayButtonIcon('⏸');
       }
+    }
+
+    function setPlayButtonIcon(icon) {
+      document.getElementById('playBtn').textContent = icon;
+      document.getElementById('peekPlayBtn').textContent = icon;
     }
 
     function stopAudio() {
       if (synth.speaking) synth.cancel();
       isPlaying = false;
-      document.getElementById('playBtn').textContent = '▶';
+      setPlayButtonIcon('▶');
     }
 
     function toggleRate() {
@@ -459,22 +529,45 @@
       }
     }
 
-    function skipSpeech(seconds) {
+    function skipSpeech() {
       if (synth.speaking) {
         stopAudio();
         toggleAudio();
       }
     }
 
-    let lastTriggeredPoiId = null;
-    function checkGeofenceTrigger(lat, lng) {
-      loadedPOIs.forEach(poi => {
-        const d = calcDistance(lat, lng, poi.lat, poi.lng);
-        if (d < 40 && lastTriggeredPoiId !== poi.id) {
-          lastTriggeredPoiId = poi.id;
-          selectPOI(poi);
+    // 5. GPS & Geofence
+    function locateUser(center = false) {
+      if (!navigator.geolocation) return;
+      
+      navigator.geolocation.watchPosition((pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        currentPos = [latitude, longitude];
+
+        if (!userMarker) {
+          userMarker = L.circleMarker(currentPos, {
+            radius: 8,
+            fillColor: '#2563eb',
+            color: '#ffffff',
+            weight: 3,
+            fillOpacity: 1
+          }).addTo(map);
+
+          userCircle = L.circle(currentPos, {
+            radius: accuracy,
+            color: '#2563eb',
+            weight: 1,
+            fillOpacity: 0.08
+          }).addTo(map);
+
+          if (center) map.setView(currentPos, 16);
+        } else {
+          userMarker.setLatLng(currentPos);
+          userCircle.setLatLng(currentPos);
+          userCircle.setRadius(accuracy);
+          if (center) map.setView(currentPos, 16);
         }
-      });
+      }, (err) => console.warn(err.message), { enableHighAccuracy: true });
     }
 
     function calcDistance(lat1, lon1, lat2, lon2) {
@@ -485,11 +578,22 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
+    // 6. Umschaltung zur Listen-Ansicht
     function toggleView() {
-      const isList = document.getElementById('listView').style.display === 'flex';
-      document.getElementById('detailView').style.display = isList ? 'block' : 'none';
-      document.getElementById('listView').style.display = isList ? 'none' : 'flex';
-      document.getElementById('toggleModeBtn').textContent = isList ? '📋 Liste' : '🗺 Karte';
+      const list = document.getElementById('listView');
+      const detail = document.getElementById('detailView');
+      const isList = list.style.display === 'flex';
+
+      if (isList) {
+        list.style.display = 'none';
+        detail.style.display = 'block';
+        document.getElementById('toggleModeBtn').textContent = '📋 Liste';
+      } else {
+        list.style.display = 'flex';
+        detail.style.display = 'none';
+        document.getElementById('toggleModeBtn').textContent = 'ℹ️ Detail';
+        expandSheet(); // Automatisch aufklappen, damit man die Liste sieht
+      }
     }
 
     function renderListView() {
@@ -512,7 +616,11 @@
           </div>
           <span style="font-size:0.85rem;font-weight:600;color:var(--primary)">${d} m</span>
         `;
-        item.onclick = () => selectPOI(poi);
+        item.onclick = () => {
+          selectPOI(poi);
+          map.setView([poi.lat, poi.lng], 17);
+          toggleView(); // Zurück zu Detail
+        };
         list.appendChild(item);
       });
     }
