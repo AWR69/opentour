@@ -16,11 +16,12 @@
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
-      --bg-card: rgba(255, 255, 255, 0.94);
-      --text: #1e293b;
+      --bg-card: rgba(255, 255, 255, 0.96);
+      --text: #0f172a;
       --text-muted: #64748b;
       --border: #e2e8f0;
-      --shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+      --success: #16a34a;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -30,49 +31,94 @@
       overflow: hidden;
       height: 100vh;
       width: 100vw;
-      background: #000;
+      background: #0f172a;
     }
 
     #map { height: 100%; width: 100%; z-index: 1; }
 
-    /* Fixierte obere Menüleiste */
-    .top-bar {
+    /* Top Bar: Standortüberschreibung (Suche) & Schnellschalter */
+    .top-container {
       position: fixed;
       top: max(10px, env(safe-area-inset-top));
       left: 10px;
       right: 10px;
       z-index: 2000;
       display: flex;
-      gap: 8px;
-      align-items: center;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 6px;
       background: var(--bg-card);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 14px;
       box-shadow: var(--shadow);
+      align-items: center;
     }
-    .top-bar h1 { font-size: 0.95rem; font-weight: 700; flex: 1; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-    .btn {
+
+    .search-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 0.9rem;
+      color: var(--text);
+      outline: none;
+    }
+
+    .search-btn {
       background: var(--primary);
       color: #fff;
       border: none;
-      padding: 7px 12px;
-      border-radius: 9px;
+      padding: 6px 12px;
+      border-radius: 8px;
       font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 6px;
+      justify-content: space-between;
+    }
+
+    .pill-btn {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
     }
-    .btn:active { background: var(--primary-hover); transform: scale(0.96); }
-    .btn-secondary { background: #e2e8f0; color: var(--text); }
 
-    /* GPS-Schaltfläche */
+    .pill-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .pill-btn.auto-on {
+      background: #ecfdf5;
+      color: var(--success);
+      border-color: #86efac;
+    }
+
+    /* GPS Re-Center Button */
     .fab-gps {
       position: fixed;
-      bottom: 85px;
+      bottom: 80px;
       right: 14px;
       z-index: 1500;
       background: var(--bg-card);
@@ -88,294 +134,288 @@
       cursor: pointer;
     }
 
-    /* Einklappbare Bottom Sheet */
-    .bottom-sheet {
+    /* Floating Card / Sheet für Audio & Infos */
+    .info-card {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      left: 10px;
+      right: 10px;
       z-index: 2000;
       background: var(--bg-card);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border-top-left-radius: 20px;
-      border-top-right-radius: 20px;
-      box-shadow: 0 -4px 25px rgba(0,0,0,0.18);
-      transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
-      max-height: 70vh;
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      transition: all 0.25s ease-out;
+      overflow: hidden;
+      max-height: 60vh;
       display: flex;
       flex-direction: column;
-      padding-bottom: env(safe-area-inset-bottom, 8px);
     }
 
-    /* Eingeklappter Status: zeigt nur die obere Mini-Leiste (~64px) */
-    .bottom-sheet.collapsed {
-      transform: translateY(calc(100% - 66px - env(safe-area-inset-bottom, 0px)));
-    }
-    /* Vollständig versteckt */
-    .bottom-sheet.hidden {
-      transform: translateY(105%);
+    .info-card.hidden {
+      display: none;
     }
 
-    /* Klickbare Kopfzeile zum Ein-/Ausklappen */
-    .sheet-header {
-      padding: 6px 14px 10px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      user-select: none;
-    }
-
-    .sheet-handle {
-      width: 36px;
-      height: 4px;
-      background: #cbd5e1;
-      border-radius: 10px;
-      margin: 2px auto 6px auto;
-    }
-
-    .peek-row {
+    .card-header {
+      padding: 10px 14px 6px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .peek-info {
+    .card-header-left {
       flex: 1;
       min-width: 0;
     }
 
     .poi-title {
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    .poi-meta {
-      font-size: 0.78rem;
+    .poi-sub {
+      font-size: 0.75rem;
       color: var(--text-muted);
-      margin-top: 1px;
     }
 
-    .peek-actions {
+    .close-btn {
+      background: #f1f5f9;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--text-muted);
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      margin-left: 8px;
     }
 
-    .toggle-chevron {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      padding: 4px 8px;
-      background: #f1f5f9;
-      border-radius: 8px;
-    }
-
-    .sheet-body {
-      padding: 4px 16px 20px;
+    .card-body {
+      padding: 10px 14px 14px;
       overflow-y: auto;
-      border-top: 1px solid var(--border);
     }
 
-    /* Audiosteuerung */
+    /* Audioplayer Leiste */
     .audio-player {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
-      margin: 10px 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 12px;
+      margin-bottom: 8px;
     }
-    .player-btn {
+
+    .ctrl-btn {
       background: none;
       border: none;
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       cursor: pointer;
       color: var(--text);
     }
-    .play-circle {
+
+    .play-btn {
       background: var(--primary);
       color: white;
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.1rem;
     }
-    .rate-btn {
+
+    .speed-btn {
       font-size: 0.75rem;
       font-weight: 700;
       background: #e2e8f0;
-      padding: 4px 7px;
+      padding: 3px 6px;
       border-radius: 6px;
       border: none;
-      cursor: pointer;
     }
 
     .poi-desc {
-      font-size: 0.88rem;
-      line-height: 1.5;
+      font-size: 0.85rem;
+      line-height: 1.45;
       color: #334155;
-      margin-top: 6px;
     }
 
-    /* Listen-Ansicht */
-    .poi-list-view {
+    /* Listen Modal */
+    .list-container {
       display: none;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 55vh;
+      max-height: 50vh;
       overflow-y: auto;
-      padding-top: 8px;
+      padding: 10px;
+      flex-direction: column;
+      gap: 6px;
     }
-    .poi-item {
+
+    .list-item {
+      background: #fff;
       padding: 9px 12px;
-      border: 1px solid var(--border);
       border-radius: 10px;
+      border: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
       cursor: pointer;
-      background: #fff;
-    }
-    .poi-item:active { background: #f1f5f9; }
-
-    /* Lade-Badge */
-    .status-badge {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      font-weight: normal;
     }
   </style>
 </head>
 <body>
 
-  <div class="top-bar">
-    <h1>🧭 OpenTour <span id="statusBadge" class="status-badge"></span></h1>
-    <button class="btn btn-secondary" id="toggleModeBtn" onclick="toggleView()">📋 Liste</button>
-    <button class="btn" id="reloadBtn" onclick="forceReload()">🔄</button>
+  <div class="top-container">
+    <div class="search-box">
+      <span style="font-size:0.9rem;">🔍</span>
+      <input type="text" id="searchInput" class="search-input" placeholder="Standort überschreiben (Stadt, Ort)..." onkeydown="if(event.key==='Enter') searchLocation()">
+      <button class="search-btn" onclick="searchLocation()">Go</button>
+    </div>
+
+    <div class="action-bar">
+      <button class="pill-btn" id="autoAudioBtn" onclick="toggleAutoAudio()">
+        <span id="autoAudioIcon">🎧</span> Auto-Audio: <span id="autoAudioStatus">AUS</span>
+      </button>
+      <button class="pill-btn" id="listBtn" onclick="toggleListView()">📋 Touren & Highlights</button>
+    </div>
   </div>
 
-  <div class="fab-gps" onclick="locateUser(true)" title="Mein Standort">🎯</div>
+  <div class="fab-gps" onclick="locateUser(true)" title="Zu meinem GPS">🎯</div>
 
   <div id="map"></div>
 
-  <div class="bottom-sheet collapsed" id="bottomSheet">
-    
-    <div class="sheet-header" onclick="toggleSheet()">
-      <div class="sheet-handle"></div>
-      <div class="peek-row">
-        <div class="peek-info">
-          <div class="poi-title" id="sheetTitle">Tippe auf ein Highlight</div>
-          <div class="poi-meta" id="sheetMeta">Karte frei verschiebbar</div>
-        </div>
-        <div class="peek-actions">
-          <button class="player-btn play-circle" id="peekPlayBtn" style="width:34px;height:34px;font-size:0.9rem;" onclick="event.stopPropagation(); toggleAudio();">▶</button>
-          <span class="toggle-chevron" id="sheetChevron">▲</span>
-        </div>
+  <div class="info-card hidden" id="infoCard">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="poi-title" id="cardTitle">Titel</div>
+        <div class="poi-sub" id="cardSub">Distanz • Typ</div>
       </div>
+      <button class="close-btn" onclick="closeCard()">✕</button>
     </div>
 
-    <div class="sheet-body" id="sheetBody">
-      <div id="detailView">
-        <div class="audio-player">
-          <button class="player-btn" onclick="skipSpeech(-15)">⏪ -15s</button>
-          <button class="player-btn play-circle" id="playBtn" onclick="toggleAudio()">▶</button>
-          <button class="player-btn" onclick="skipSpeech(15)">⏩ +15s</button>
-          <button class="rate-btn" id="rateBtn" onclick="toggleRate()">1.0x</button>
-        </div>
-        <p class="poi-desc" id="sheetDesc">Bewege die Karte, um Sehenswürdigkeiten in deiner Umgebung zu entdecken.</p>
+    <div class="card-body">
+      <div class="audio-player">
+        <button class="ctrl-btn" onclick="skipSpeech(-15)">⏪ -15s</button>
+        <button class="ctrl-btn play-btn" id="playBtn" onclick="toggleAudio()">▶</button>
+        <button class="ctrl-btn" onclick="skipSpeech(15)">⏩ +15s</button>
+        <button class="speed-btn" id="speedBtn" onclick="toggleSpeed()">1.0x</button>
       </div>
-
-      <div id="listView" class="poi-list-view"></div>
+      <p class="poi-desc" id="cardDesc">Beschreibung lädt...</p>
     </div>
+  </div>
 
+  <div class="info-card hidden" id="tourListCard">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="poi-title">Entdeckte Highlights</div>
+        <div class="poi-sub" id="tourListCount">0 Orte in Reichweite</div>
+      </div>
+      <button class="close-btn" onclick="toggleListView()">✕</button>
+    </div>
+    <div class="list-container" id="listContainer" style="display:flex;"></div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     let map, userMarker, userCircle;
-    let currentPos = [49.4432, 1.0999]; // Rouen
-    let activePOI = null;
+    let currentPos = [49.4432, 1.0999]; // Rouen Fallback
     let loadedPOIs = [];
     let poiMarkers = [];
-    let lastQueryCenter = null;
-    let isFetching = false;
-    let moveTimeout = null;
+    let activePOI = null;
+    let autoAudioActive = false;
+    let lastPlayedPoiId = null;
 
-    // Speech State
+    // TTS Audio State
     let synth = window.speechSynthesis;
     let utterance = null;
     let isPlaying = false;
-    let playbackRate = 1.0;
+    let playbackSpeed = 1.0;
 
     function initMap() {
-      // Karte initialisieren mit sichtbaren Zoom-Buttons oben links
-      map = L.map('map', { zoomControl: true }).setView(currentPos, 16);
+      map = L.map('map', { zoomControl: false }).setView(currentPos, 16);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap'
       }).addTo(map);
 
-      // Beim Verschieben: nur abfragen, wenn der Nutzer mind. 350 Meter weggescrollt hat
+      // Nachladen beim Verschieben (mit sanfter Entprellung)
+      let moveTimer;
       map.on('moveend', () => {
-        clearTimeout(moveTimeout);
-        moveTimeout = setTimeout(() => {
-          checkAndFetchPOIs();
-        }, 450);
+        clearTimeout(moveTimer);
+        moveTimer = setTimeout(() => fetchPOIsInArea(), 400);
       });
 
       locateUser(false);
-      checkAndFetchPOIs(true);
+      fetchPOIsInArea();
     }
 
-    // 1. Performance-optimiertes Laden der POIs
-    function checkAndFetchPOIs(force = false) {
-      if (isFetching) return;
-      const center = map.getCenter();
+    // 1. Standortüberschreibung (Suche) wie im SelfTour-Handbuch
+    async function searchLocation() {
+      const q = document.getElementById('searchInput').value.trim();
+      if (!q) return;
 
-      if (!force && lastQueryCenter) {
-        const distMoved = calcDistance(center.lat, center.lng, lastQueryCenter.lat, lastQueryCenter.lng);
-        if (distMoved < 350) return; // Noch im selben Radius, kein neuer Server-Request nötig!
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const target = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+          map.setView(target, 16);
+          fetchPOIsInArea();
+        } else {
+          alert('Ort nicht gefunden.');
+        }
+      } catch (e) {
+        console.error("Geocoding Error:", e);
       }
-
-      fetchPOIsInArea(center);
     }
 
-    function forceReload() {
-      fetchPOIsInArea(map.getCenter());
+    // 2. Automatisches Audio Toggle
+    function toggleAutoAudio() {
+      autoAudioActive = !autoAudioActive;
+      const btn = document.getElementById('autoAudioBtn');
+      const status = document.getElementById('autoAudioStatus');
+      
+      if (autoAudioActive) {
+        btn.classList.add('auto-on');
+        status.textContent = 'AN';
+        // AudioContext für iOS entsperren
+        if (synth.speaking) synth.cancel();
+      } else {
+        btn.classList.remove('auto-on');
+        status.textContent = 'AUS';
+      }
     }
 
-    async function fetchPOIsInArea(center) {
-      isFetching = true;
-      lastQueryCenter = center;
-      const badge = document.getElementById('statusBadge');
-      if (badge) badge.textContent = '(lädt...)';
+    // 3. POIs via Overpass API laden
+    async function fetchPOIsInArea() {
+      const center = map.getCenter();
+      const radius = 900;
 
-      // Kompakter Suchradius: 850 Meter um das Kartenzentrum
-      const radius = 850;
       const query = `
-        [out:json][timeout:10];
+        [out:json][timeout:12];
         (
           nwr["tourism"~"attraction|museum|viewpoint|artwork"](around:${radius},${center.lat},${center.lng});
           nwr["historic"~"monument|memorial|castle|ruins|church|cathedral"](around:${radius},${center.lat},${center.lng});
           nwr["amenity"="place_of_worship"]["historic"](around:${radius},${center.lat},${center.lng});
         );
-        out center 25;
+        out center 30;
       `;
 
       try {
         const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
         const data = await res.json();
-        
+
         clearMarkers();
         loadedPOIs = [];
 
@@ -390,7 +430,7 @@
               name: name,
               lat: lat,
               lng: lng,
-              type: el.tags.tourism || el.tags.historic || 'Attraktion',
+              type: el.tags.tourism || el.tags.historic || 'Highlight',
               desc: el.tags.description || el.tags['description:de'] || null,
               wikipedia: el.tags.wikipedia || null
             };
@@ -399,13 +439,10 @@
           }
         });
 
-        if (badge) badge.textContent = `(${loadedPOIs.length} Highlights)`;
-        renderListView();
+        document.getElementById('tourListCount').textContent = `${loadedPOIs.length} Highlights in Reichweite`;
+        updateListView();
       } catch (e) {
         console.error("Overpass API Error:", e);
-        if (badge) badge.textContent = '';
-      } finally {
-        isFetching = false;
       }
     }
 
@@ -416,49 +453,42 @@
 
     function renderMarker(poi) {
       const marker = L.marker([poi.lat, poi.lng]).addTo(map);
-      marker.on('click', () => {
-        selectPOI(poi);
-        expandSheet(); // Beim Anklicken eines Markers Box automatisch öffnen
-      });
+      marker.on('click', () => selectPOI(poi, true));
       poiMarkers.push(marker);
     }
 
-    // 2. Sheet ein- und ausklappen
-    function toggleSheet() {
-      const sheet = document.getElementById('bottomSheet');
-      const chevron = document.getElementById('sheetChevron');
-      if (sheet.classList.contains('collapsed')) {
-        sheet.classList.remove('collapsed');
-        chevron.textContent = '▼';
-      } else {
-        sheet.classList.add('collapsed');
-        chevron.textContent = '▲';
-      }
-    }
-
-    function expandSheet() {
-      const sheet = document.getElementById('bottomSheet');
-      sheet.classList.remove('collapsed');
-      document.getElementById('sheetChevron').textContent = '▼';
-    }
-
-    // 3. POI Auswählen & Wikipedia abrufen
-    async function selectPOI(poi) {
+    // 4. POI auswählen & Audiotext laden
+    async function selectPOI(poi, openCard = true) {
       activePOI = poi;
       stopAudio();
 
-      document.getElementById('sheetTitle').textContent = poi.name;
-      const dist = Math.round(calcDistance(currentPos[0], currentPos[1], poi.lat, poi.lng));
-      document.getElementById('sheetMeta').textContent = `${dist} m entfernt • ${poi.type.toUpperCase()}`;
-      document.getElementById('sheetDesc').textContent = 'Lade Audiotext...';
+      if (openCard) {
+        document.getElementById('tourListCard').classList.add('hidden');
+        const card = document.getElementById('infoCard');
+        card.classList.remove('hidden');
+
+        document.getElementById('cardTitle').textContent = poi.name;
+        const dist = Math.round(calcDistance(currentPos[0], currentPos[1], poi.lat, poi.lng));
+        document.getElementById('cardSub').textContent = `${dist} m entfernt • ${poi.type.toUpperCase()}`;
+        document.getElementById('cardDesc').textContent = 'Lade Audio-Erklärung...';
+      }
 
       let text = poi.desc;
       if (!text) {
         text = await fetchWikipediaSummary(poi.name, poi.wikipedia);
       }
 
-      poi.fullText = text || `Willkommen bei ${poi.name}. Dies ist ein bekanntes Highlight der Kategorie ${poi.type}.`;
-      document.getElementById('sheetDesc').textContent = poi.fullText;
+      poi.fullText = text || `Willkommen bei ${poi.name}. Es handelt sich um ein historisches Bauwerk bzw. eine Sehenswürdigkeit in dieser Region.`;
+      
+      if (openCard) {
+        document.getElementById('cardDesc').textContent = poi.fullText;
+      }
+
+      // Falls Automatisches Audio aktiv ist und wir getriggert wurden:
+      if (autoAudioActive && lastPlayedPoiId !== poi.id) {
+        lastPlayedPoiId = poi.id;
+        toggleAudio();
+      }
     }
 
     async function fetchWikipediaSummary(title, wikiTag) {
@@ -469,8 +499,7 @@
           lang = wikiTag.split(':')[0];
           pageTitle = wikiTag.split(':')[1];
         }
-        const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
-        const res = await fetch(url);
+        const res = await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`);
         if (!res.ok) return null;
         const data = await res.json();
         return data.extract || null;
@@ -479,7 +508,7 @@
       }
     }
 
-    // 4. Audio-Wiedergabe
+    // 5. Audio-Engine
     function toggleAudio() {
       if (!activePOI || !activePOI.fullText) return;
 
@@ -487,42 +516,36 @@
         if (isPlaying) {
           synth.pause();
           isPlaying = false;
-          setPlayButtonIcon('▶');
+          document.getElementById('playBtn').textContent = '▶';
         } else {
           synth.resume();
           isPlaying = true;
-          setPlayButtonIcon('⏸');
+          document.getElementById('playBtn').textContent = '⏸';
         }
       } else {
         utterance = new SpeechSynthesisUtterance(activePOI.fullText);
         utterance.lang = 'de-DE';
-        utterance.rate = playbackRate;
+        utterance.rate = playbackSpeed;
         utterance.onend = () => {
           isPlaying = false;
-          setPlayButtonIcon('▶');
+          document.getElementById('playBtn').textContent = '▶';
         };
         synth.speak(utterance);
         isPlaying = true;
-        setPlayButtonIcon('⏸');
+        document.getElementById('playBtn').textContent = '⏸';
       }
-    }
-
-    function setPlayButtonIcon(icon) {
-      document.getElementById('playBtn').textContent = icon;
-      document.getElementById('peekPlayBtn').textContent = icon;
     }
 
     function stopAudio() {
       if (synth.speaking) synth.cancel();
       isPlaying = false;
-      setPlayButtonIcon('▶');
+      document.getElementById('playBtn').textContent = '▶';
     }
 
-    function toggleRate() {
-      const rates = [1.0, 1.25, 1.5];
-      let idx = rates.indexOf(playbackRate);
-      playbackRate = rates[(idx + 1) % rates.length];
-      document.getElementById('rateBtn').textContent = `${playbackRate}x`;
+    function toggleSpeed() {
+      const speeds = [1.0, 1.25, 1.5];
+      playbackSpeed = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
+      document.getElementById('speedBtn').textContent = `${playbackSpeed}x`;
       if (synth.speaking) {
         stopAudio();
         toggleAudio();
@@ -536,36 +559,38 @@
       }
     }
 
-    // 5. GPS & Geofence
+    function closeCard() {
+      stopAudio();
+      document.getElementById('infoCard').classList.add('hidden');
+    }
+
+    // 6. Geofencing & Freihändige Erkundung
     function locateUser(center = false) {
       if (!navigator.geolocation) return;
-      
+
       navigator.geolocation.watchPosition((pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
         currentPos = [latitude, longitude];
 
         if (!userMarker) {
-          userMarker = L.circleMarker(currentPos, {
-            radius: 8,
-            fillColor: '#2563eb',
-            color: '#ffffff',
-            weight: 3,
-            fillOpacity: 1
-          }).addTo(map);
-
-          userCircle = L.circle(currentPos, {
-            radius: accuracy,
-            color: '#2563eb',
-            weight: 1,
-            fillOpacity: 0.08
-          }).addTo(map);
-
+          userMarker = L.circleMarker(currentPos, { radius: 8, fillColor: '#2563eb', color: '#fff', weight: 3, fillOpacity: 1 }).addTo(map);
+          userCircle = L.circle(currentPos, { radius: accuracy, color: '#2563eb', weight: 1, fillOpacity: 0.08 }).addTo(map);
           if (center) map.setView(currentPos, 16);
         } else {
           userMarker.setLatLng(currentPos);
           userCircle.setLatLng(currentPos);
           userCircle.setRadius(accuracy);
           if (center) map.setView(currentPos, 16);
+        }
+
+        // Auto-Audio Geofence Trigger (< 45 Meter)
+        if (autoAudioActive) {
+          loadedPOIs.forEach(poi => {
+            const dist = calcDistance(latitude, longitude, poi.lat, poi.lng);
+            if (dist < 45 && lastPlayedPoiId !== poi.id) {
+              selectPOI(poi, true);
+            }
+          });
         }
       }, (err) => console.warn(err.message), { enableHighAccuracy: true });
     }
@@ -578,28 +603,22 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // 6. Umschaltung zur Listen-Ansicht
-    function toggleView() {
-      const list = document.getElementById('listView');
-      const detail = document.getElementById('detailView');
-      const isList = list.style.display === 'flex';
-
-      if (isList) {
-        list.style.display = 'none';
-        detail.style.display = 'block';
-        document.getElementById('toggleModeBtn').textContent = '📋 Liste';
+    // 7. Touren- & Highlightliste
+    function toggleListView() {
+      const listCard = document.getElementById('tourListCard');
+      const isHidden = listCard.classList.contains('hidden');
+      if (isHidden) {
+        document.getElementById('infoCard').classList.add('hidden');
+        listCard.classList.remove('hidden');
       } else {
-        list.style.display = 'flex';
-        detail.style.display = 'none';
-        document.getElementById('toggleModeBtn').textContent = 'ℹ️ Detail';
-        expandSheet(); // Automatisch aufklappen, damit man die Liste sieht
+        listCard.classList.add('hidden');
       }
     }
 
-    function renderListView() {
-      const list = document.getElementById('listView');
-      list.innerHTML = '';
-      
+    function updateListView() {
+      const container = document.getElementById('listContainer');
+      container.innerHTML = '';
+
       const sorted = [...loadedPOIs].sort((a, b) => {
         return calcDistance(currentPos[0], currentPos[1], a.lat, a.lng) -
                calcDistance(currentPos[0], currentPos[1], b.lat, b.lng);
@@ -608,20 +627,20 @@
       sorted.forEach(poi => {
         const d = Math.round(calcDistance(currentPos[0], currentPos[1], poi.lat, poi.lng));
         const item = document.createElement('div');
-        item.className = 'poi-item';
+        item.className = 'list-item';
         item.innerHTML = `
           <div>
             <strong>${poi.name}</strong><br>
             <small style="color:var(--text-muted)">${poi.type}</small>
           </div>
-          <span style="font-size:0.85rem;font-weight:600;color:var(--primary)">${d} m</span>
+          <span style="font-size:0.8rem;font-weight:700;color:var(--primary)">${d} m</span>
         `;
         item.onclick = () => {
-          selectPOI(poi);
+          toggleListView();
           map.setView([poi.lat, poi.lng], 17);
-          toggleView(); // Zurück zu Detail
+          selectPOI(poi, true);
         };
-        list.appendChild(item);
+        container.appendChild(item);
       });
     }
 
