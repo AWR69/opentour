@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>OpenTour Guide</title>
 
+  <!-- iOS PWA Optimierungen -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="OpenTour">
   <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png">
   
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
@@ -35,6 +37,7 @@
 
     #map { height: 100%; width: 100%; z-index: 1; }
 
+    /* Top Floating Header */
     .top-bar {
       position: absolute;
       top: env(safe-area-inset-top, 12px);
@@ -70,6 +73,7 @@
       color: var(--text);
     }
 
+    /* Floating Action Button (Center GPS) */
     .fab-gps {
       position: absolute;
       bottom: 240px;
@@ -88,6 +92,7 @@
       cursor: pointer;
     }
 
+    /* Bottom Sheet / Player */
     .bottom-sheet {
       position: absolute;
       bottom: 0;
@@ -122,6 +127,7 @@
     .poi-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
     .poi-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; display: flex; gap: 12px; }
 
+    /* Audio Player Bar */
     .audio-player {
       background: #f8fafc;
       border: 1px solid var(--border);
@@ -171,6 +177,7 @@
       color: #334155;
     }
 
+    /* List Modal */
     .poi-list-view {
       display: none;
       flex-direction: column;
@@ -194,10 +201,10 @@
   <div class="top-bar">
     <h1>🧭 OpenTour</h1>
     <button class="btn btn-secondary" id="toggleModeBtn" onclick="toggleView()">📋 Liste</button>
-    <button class="btn" onclick="fetchPOIsInArea()">🔄 Neu laden</button>
+    <button class="btn" id="reloadBtn" onclick="fetchPOIsInArea()">🔄 Neu laden</button>
   </div>
 
-  <div class="fab-gps" onclick="locateUser()" title="Standort zentrieren">🎯</div>
+  <div class="fab-gps" onclick="locateUser(true)" title="Standort zentrieren">🎯</div>
 
   <div id="map"></div>
 
@@ -221,7 +228,7 @@
           </div>
         </div>
 
-        <p class="poi-desc" id="sheetDesc">Bewege die Karte oder tippe auf 'Neu laden', um Sehenswürdigkeiten in deiner Umgebung zu finden.</p>
+        <p class="poi-desc" id="sheetDesc">Bewege die Karte, um Highlights in der Umgebung automatisch zu entdecken.</p>
       </div>
 
       <div id="listView" class="poi-list-view"></div>
@@ -232,10 +239,11 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     let map, userMarker, userCircle;
-    let currentPos = [50.1109, 8.6821];
+    let currentPos = [49.4432, 1.0999]; // Rouen Fallback
     let activePOI = null;
     let loadedPOIs = [];
     let poiMarkers = [];
+    let moveTimeout = null;
     
     let synth = window.speechSynthesis;
     let utterance = null;
@@ -249,11 +257,20 @@
         attribution: '&copy; OpenStreetMap'
       }).addTo(map);
 
-      locateUser(true);
+      // Automatisches Nachladen beim Verschieben/Zoomen (mit 600ms Entprellung)
+      map.on('moveend', () => {
+        clearTimeout(moveTimeout);
+        moveTimeout = setTimeout(() => {
+          fetchPOIsInArea();
+        }, 600);
+      });
+
+      locateUser(false);
+      fetchPOIsInArea();
     }
 
     function locateUser(center = false) {
-      if (!navigator.geolocation) return alert('GPS wird nicht unterstützt.');
+      if (!navigator.geolocation) return;
       
       navigator.geolocation.watchPosition((pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
@@ -277,32 +294,35 @@
 
           if (center) {
             map.setView(currentPos, 16);
-            fetchPOIsInArea();
           }
         } else {
           userMarker.setLatLng(currentPos);
           userCircle.setLatLng(currentPos);
           userCircle.setRadius(accuracy);
+          if (center) map.setView(currentPos, 16);
         }
 
         checkGeofenceTrigger(latitude, longitude);
       }, (err) => {
-        console.warn("GPS-Fehler:", err.message);
-        if (center) fetchPOIsInArea();
+        console.warn("GPS-Hinweis:", err.message);
       }, { enableHighAccuracy: true, maximumAge: 5000 });
     }
 
+    // Abfrage mit nwr (Node, Way, Relation) & Center-Koordinaten für Gebäude
     async function fetchPOIsInArea() {
       const center = map.getCenter();
-      const radius = 1200;
+      const radius = 1000; // 1 km Umkreis vom Kartenzentrum
+      const reloadBtn = document.getElementById('reloadBtn');
+      if (reloadBtn) reloadBtn.textContent = '⏳ Lädt...';
 
       const query = `
         [out:json][timeout:15];
         (
-          node["tourism"~"attraction|museum|viewpoint|artwork"](around:${radius},${center.lat},${center.lng});
-          node["historic"~"monument|memorial|castle|ruins|church"](around:${radius},${center.lat},${center.lng});
+          nwr["tourism"~"attraction|museum|viewpoint|artwork"](around:${radius},${center.lat},${center.lng});
+          nwr["historic"~"monument|memorial|castle|ruins|church|cathedral"](around:${radius},${center.lat},${center.lng});
+          nwr["amenity"="place_of_worship"]["historic"](around:${radius},${center.lat},${center.lng});
         );
-        out body 25;
+        out center 35;
       `;
 
       try {
@@ -313,13 +333,17 @@
         loadedPOIs = [];
 
         data.elements.forEach(el => {
-          if (el.tags && el.tags.name) {
+          const lat = el.lat || (el.center && el.center.lat);
+          const lng = el.lon || (el.center && el.center.lon);
+          const name = el.tags && (el.tags.name || el.tags['name:de'] || el.tags['name:en']);
+
+          if (lat && lng && name) {
             const poi = {
               id: el.id,
-              name: el.tags.name,
-              lat: el.lat,
-              lng: el.lon,
-              type: el.tags.tourism || el.tags.historic || 'Attraktion',
+              name: name,
+              lat: lat,
+              lng: lng,
+              type: el.tags.tourism || el.tags.historic || 'Sehenswürdigkeit',
               desc: el.tags.description || el.tags['description:de'] || null,
               wikipedia: el.tags.wikipedia || null
             };
@@ -331,6 +355,8 @@
         renderListView();
       } catch (e) {
         console.error("Overpass API Error:", e);
+      } finally {
+        if (reloadBtn) reloadBtn.textContent = '🔄 Neu laden';
       }
     }
 
@@ -354,7 +380,7 @@
       
       const dist = calcDistance(currentPos[0], currentPos[1], poi.lat, poi.lng);
       document.getElementById('sheetDist').textContent = `${Math.round(dist)} m entfernt`;
-      document.getElementById('sheetDesc').textContent = 'Lade Audio-Tour-Informationen...';
+      document.getElementById('sheetDesc').textContent = 'Lade Audioguide-Text...';
 
       document.getElementById('detailView').style.display = 'block';
       document.getElementById('listView').style.display = 'none';
@@ -365,17 +391,19 @@
         text = await fetchWikipediaSummary(poi.name, poi.wikipedia);
       }
 
-      poi.fullText = text || `Willkommen bei ${poi.name}. Dies ist ein bekanntes Highlight der Kategorie ${poi.type}.`;
+      poi.fullText = text || `Willkommen bei ${poi.name}. Dies ist ein historisches Highlight der Kategorie ${poi.type}.`;
       document.getElementById('sheetDesc').textContent = poi.fullText;
     }
 
     async function fetchWikipediaSummary(title, wikiTag) {
       try {
         let pageTitle = title;
+        let lang = 'de';
         if (wikiTag && wikiTag.includes(':')) {
+          lang = wikiTag.split(':')[0];
           pageTitle = wikiTag.split(':')[1];
         }
-        const url = `https://de.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
+        const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
         const res = await fetch(url);
         if (!res.ok) return null;
         const data = await res.json();
